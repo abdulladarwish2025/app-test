@@ -7,6 +7,7 @@ on:
       - "gateway-admin/**"
       - "gateway-core/**"
       - "gradle/**"
+      - "gradle.properties"
       - "gradlew"
       - "gradlew.bat"
       - "build.gradle.kts"
@@ -18,6 +19,7 @@ on:
       - "gateway-admin/**"
       - "gateway-core/**"
       - "gradle/**"
+      - "gradle.properties"
       - "build.gradle.kts"
       - "settings.gradle.kts"
   workflow_dispatch:
