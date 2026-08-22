@@ -1,0 +1,93 @@
+name: NetQuota Gateway Admin APK
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "gateway-admin/**"
+      - "gateway-core/**"
+      - "gradle/**"
+      - "gradlew"
+      - "gradlew.bat"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - ".github/workflows/gateway-admin-apk.yml"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "gateway-admin/**"
+      - "gateway-core/**"
+      - "gradle/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+  workflow_dispatch:
+
+concurrency:
+  group: gateway-admin-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gateway-core-tests:
+    name: Test Gateway Core
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Run persistence, quota, and API tests
+        working-directory: gateway-core
+        run: npm test
+
+  build-admin-apk:
+    name: Build Installable Admin APK
+    needs: gateway-core-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Make wrapper executable
+        run: chmod +x gradlew
+
+      - name: Test Admin application
+        run: ./gradlew :gateway-admin:testDebugUnitTest --no-daemon --stacktrace
+
+      - name: Build debug APK
+        run: ./gradlew :gateway-admin:assembleDebug --no-daemon --stacktrace
+
+      - name: Prepare APK and checksum
+        run: |
+          RAW_APK=$(find gateway-admin/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          test -n "$RAW_APK"
+          cp "$RAW_APK" NetQuota-Gateway-Admin.apk
+          sha256sum NetQuota-Gateway-Admin.apk > NetQuota-Gateway-Admin.apk.sha256
+
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NetQuota-Gateway-Admin-APK-${{ github.sha }}
+          path: |
+            NetQuota-Gateway-Admin.apk
+            NetQuota-Gateway-Admin.apk.sha256
+          if-no-files-found: error
+          retention-days: 30

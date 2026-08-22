@@ -1,0 +1,13 @@
+*.iml
+.gradle/
+.idea/
+local.properties
+**/build/
+gateway-core/data/
+gateway-core/*.db*
+*.apk
+*.aab
+*.jks
+*.keystore
+secrets.properties
+.DS_Store
